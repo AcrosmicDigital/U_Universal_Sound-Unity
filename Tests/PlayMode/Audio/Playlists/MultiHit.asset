@@ -1,0 +1,42 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 10eed0273f795794da1c7d47649416b9, type: 3}
+  m_Name: MultiHit
+  m_EditorClassIdentifier: 
+  audioFiles:
+  - audioClip: {fileID: 8300000, guid: 047be4fede3f6284097c5cc574744a93, type: 3}
+    randomVolume: 0
+    volumeMin: 0
+    volumeMax: 1
+    randomPitch: 0
+    pitchMin: 0
+    pitchMax: 1
+  - audioClip: {fileID: 8300000, guid: 438d590344b92554db2a23376b27518c, type: 3}
+    randomVolume: 0
+    volumeMin: 0
+    volumeMax: 1
+    randomPitch: 0
+    pitchMin: 0
+    pitchMax: 1
+  - audioClip: {fileID: 8300000, guid: 8c226e83e08fa2948bf5899da98e8528, type: 3}
+    randomVolume: 0
+    volumeMin: 0
+    volumeMax: 1
+    randomPitch: 0
+    pitchMin: 0
+    pitchMax: 1
+  playMode: 0
+  loopMode: 2
+  iterationsVal: 5
+  replicasVal: 3
+  defaultHostToDDOL: 0
+  audioMixerGroup: {fileID: 0}

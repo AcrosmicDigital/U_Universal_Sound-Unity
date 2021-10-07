@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 10eed0273f795794da1c7d47649416b9, type: 3}
+  m_Name: MusicBack
+  m_EditorClassIdentifier: 
+  audioFiles:
+  - audioClip: {fileID: 8300000, guid: 78b2e7e3e869cf14e8c1e84a6cc18c9e, type: 3}
+    randomVolume: 0
+    volumeMin: 0
+    volumeMax: 1
+    randomPitch: 0
+    pitchMin: 0
+    pitchMax: 1
+  playMode: 0
+  loopMode: 0
+  iterationsVal: 0
+  replicasVal: 2
+  defaultHostToDDOL: 0
+  audioMixerGroup: {fileID: 0}

@@ -1,0 +1,7 @@
+
+[Test]
+  Name: WhenMultiPlayersCallSaamePlaylist_OnlyOneInstanceIsPlayed
+  Reqs:
+    - Platform: Any
+  Results:
+    Create-One: Debe de crearse el listener y si es necesario el 
