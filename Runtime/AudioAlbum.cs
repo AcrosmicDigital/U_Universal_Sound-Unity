@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace U.Universal.Sound
 {
-    [CreateAssetMenu(fileName = "NewAudioAlbum", menuName = "U Audio/Album")]
+    [CreateAssetMenu(fileName = "NewAlbum", menuName = "Audio/Album")]
     public class AudioAlbum : ScriptableObject
     {
 

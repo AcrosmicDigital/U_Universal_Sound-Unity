@@ -115,6 +115,21 @@ namespace U.Universal.Sound
             else return num;
         }
 
+        internal static int MinMaxInt(this int num, int min, int max)
+        {
+            // if min and max are inverted
+            if (max < min)
+            {
+                var v = min;
+                min = max;
+                max = v;
+            }
+
+            if (num < min) return min;
+            else if (num > max) return max;
+            else return num;
+        }
+
         // Tested
         public static int MinInt(this int num, int min)
         {

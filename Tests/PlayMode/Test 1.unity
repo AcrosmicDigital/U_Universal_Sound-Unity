@@ -1634,6 +1634,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 1
   m_VolumeTrigger: {fileID: 0}
+  m_VolumeFrameworkUpdateModeOption: 2
   m_RenderPostProcessing: 0
   m_Antialiasing: 0
   m_AntialiasingQuality: 2
@@ -3237,8 +3238,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a64800c0c3ec331479eb8394a8603ba7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  useDefaultHost: 1
   host: {fileID: 990269861}
-  audioPlaylist: {fileID: 11400000, guid: cd550d2083767f943b5e87af25d9476f, type: 2}
+  playlist: {fileID: 0}
+  playOnAwake: 0
+  time: 0
+  delay: 0
 --- !u!1 &1005460703
 GameObject:
   m_ObjectHideFlags: 0
@@ -5541,8 +5546,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a64800c0c3ec331479eb8394a8603ba7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  useDefaultHost: 1
   host: {fileID: 0}
-  audioPlaylist: {fileID: 11400000, guid: cd550d2083767f943b5e87af25d9476f, type: 2}
+  playlist: {fileID: 0}
+  playOnAwake: 0
+  time: 0
+  delay: 0
 --- !u!4 &1921950551
 Transform:
   m_ObjectHideFlags: 0
@@ -5586,8 +5595,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a64800c0c3ec331479eb8394a8603ba7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  useDefaultHost: 1
   host: {fileID: 1953109125}
-  audioPlaylist: {fileID: 11400000, guid: cd550d2083767f943b5e87af25d9476f, type: 2}
+  playlist: {fileID: 0}
+  playOnAwake: 0
+  time: 0
+  delay: 0
 --- !u!4 &1953109127
 Transform:
   m_ObjectHideFlags: 0

@@ -9,7 +9,7 @@ using UnityEngine.Audio;
 
 namespace U.Universal.Sound
 {
-    [CreateAssetMenu(fileName = "NewAudioPlaylist", menuName = "U Audio/Playlist")]
+    [CreateAssetMenu(fileName = "NewPlaylist", menuName = "Audio/Playlist")]
     public class AudioPlaylist : ScriptableObject
     {
         public enum TimeMode
@@ -38,7 +38,7 @@ namespace U.Universal.Sound
         private class NoActionMonoBehaviour : MonoBehaviour { }
 
 
-        public AudioFile[] audioFiles;
+        public AudioFile[] audioFiles = new AudioFile[1];
         public TimeMode timeMode = TimeMode.UnscaledDeltaTime;  // For fades and time related functions
         public PlayMode playMode = PlayMode.Random;
         public LoopMode loopMode;
@@ -46,7 +46,7 @@ namespace U.Universal.Sound
         public int replicasVal = 1;
         public bool defaultHostToDDOL = false;
         public bool allowOverlap = true;
-        public AudioMixerGroup audioMixerGroup;
+        public AudioMixerGroup output;
 
 
 
@@ -250,14 +250,18 @@ namespace U.Universal.Sound
                 // Assign one time properties
                 audioSources[i].loop = false; // Always false, is controled from this class
                 audioSources[i].playOnAwake = false;  // Neverplay on awake only when Play() is called
-                audioSources[i].outputAudioMixerGroup = audioMixerGroup;
+                audioSources[i].outputAudioMixerGroup = output;
             }
 
             
             // Assign multi time properties
-            audioSources[i].clip = file.audioClip;
-            audioSources[i].volume = file.volume;
-            audioSources[i].pitch = file.pitch;
+            audioSources[i].clip = file.AudioClip;
+            audioSources[i].priority = file.Priority;
+            audioSources[i].volume = file.Volume;
+            audioSources[i].pitch = file.Pitch;
+            audioSources[i].panStereo = file.Pan;
+            audioSources[i].spatialBlend = file.SpatialBlend;
+            audioSources[i].reverbZoneMix = file.ReverbZone;
             
             // Check for loop
             CheckForLoop(audioSources[i]);
@@ -663,7 +667,7 @@ namespace U.Universal.Sound
                 {
                     if (file == null) continue;
 
-                    file.volume = value.MinMaxFloat(00f, 1f);
+                    file.Volume = value.MinMaxFloat(00f, 1f);
                 }
             }
         }
@@ -697,28 +701,12 @@ namespace U.Universal.Sound
                 {
                     if (file == null) continue;
 
-                    file.pitch = value.MinMaxFloat(00f, 1f);
+                    file.Pitch = value.MinMaxFloat(00f, 1f);
                 }
             }
         }
 
         #endregion
-
-
-
-        #region FIND
-
-        public static AudioPlaylist LoadFromResources(string path)
-        {
-            return Resources.Load<AudioPlaylist>(path);
-        }
-
-        public static AudioPlaylist LoadFromResourcesAudioPlaylist(string path)
-        {
-            return Resources.Load<AudioPlaylist>("Audio/Playlists/" + path);
-        }
-
-#endregion
 
     }
 
