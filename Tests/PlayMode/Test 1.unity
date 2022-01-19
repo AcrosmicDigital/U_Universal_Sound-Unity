@@ -3240,7 +3240,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   useDefaultHost: 1
   host: {fileID: 990269861}
-  playlist: {fileID: 0}
+  playlist: {fileID: 11400000, guid: b40ab25482fe0a347809529f27877c59, type: 2}
   playOnAwake: 0
   time: 0
   delay: 0
@@ -5548,8 +5548,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   useDefaultHost: 1
   host: {fileID: 0}
-  playlist: {fileID: 0}
-  playOnAwake: 0
+  playlist: {fileID: 11400000, guid: b40ab25482fe0a347809529f27877c59, type: 2}
+  playOnAwake: 3
   time: 0
   delay: 0
 --- !u!4 &1921950551
@@ -5597,7 +5597,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   useDefaultHost: 1
   host: {fileID: 1953109125}
-  playlist: {fileID: 0}
+  playlist: {fileID: 11400000, guid: cd550d2083767f943b5e87af25d9476f, type: 2}
   playOnAwake: 0
   time: 0
   delay: 0
