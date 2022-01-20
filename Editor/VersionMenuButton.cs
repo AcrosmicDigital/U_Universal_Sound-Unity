@@ -1,20 +1,17 @@
 using UnityEngine;
 using UnityEditor;
 
-
-#if UNITY_EDITOR
-
-public class VersionMenuButton : EditorWindow
+namespace U.Universal.Sound.Editor
 {
-
-    [MenuItem("U/Universal Sound/Version")]
-    public static void PrintVersion()
+    public class VersionMenuButton : EditorWindow
     {
 
-        Debug.Log(" U Framework: Universal Sound v1.0.0 for Unity");
+        [MenuItem("Universal/Sound/Version")]
+        public static void PrintVersion()
+        {
 
+            Debug.Log(" U Framework: Universal Sound v1.0.0 for Unity");
+
+        }
     }
 }
-
-
-#endif

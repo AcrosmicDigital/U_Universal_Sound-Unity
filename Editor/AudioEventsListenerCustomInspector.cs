@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 
@@ -7,7 +5,7 @@ namespace U.Universal.Sound
 {
     [CustomEditor(typeof(AudioEventsListener))]
     [CanEditMultipleObjects()]
-    public class AudioEventsListenerCustomInspector : Editor
+    public class AudioEventsListenerCustomInspector : UnityEditor.Editor
     {
         public override void OnInspectorGUI()
         {
@@ -21,5 +19,5 @@ namespace U.Universal.Sound
 
             serializedObject.ApplyModifiedProperties();
         }
-     }
+    }
 }

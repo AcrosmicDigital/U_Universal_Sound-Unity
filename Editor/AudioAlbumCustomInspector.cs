@@ -1,14 +1,11 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 
-namespace U.Universal.Sound
+namespace U.Universal.Sound.Editor
 {
-
     [CustomEditor(typeof(AudioAlbum))]
     [CanEditMultipleObjects()]
-    public class AudioAlbumCustomInspector : Editor
+    public class AudioAlbumCustomInspector : UnityEditor.Editor
     {
         public override void OnInspectorGUI()
         {
@@ -22,5 +19,4 @@ namespace U.Universal.Sound
 
         }
     }
-
 }
