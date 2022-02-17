@@ -12,13 +12,13 @@ namespace U.Universal.Sound
     [CreateAssetMenu(fileName = "NewPlaylist", menuName = "Audio/Playlist")]
     public class AudioPlaylist : ScriptableObject
     {
-        public enum TimeMode
+        public enum TimeModeOptions
         {
             DeltaTime,
             UnscaledDeltaTime,
         }
 
-        public enum PlayMode
+        public enum PlayModeOptions  // Playmode of the clips list
         {
             Random,
             RandomNotRepeated,
@@ -28,260 +28,312 @@ namespace U.Universal.Sound
             InverseSequenceRandomStart,
         }
 
-        public enum LoopMode
+        public enum LoopModeOptions
         {
             Clone,  // If desactivated can use replicas
             Loop,  // Auto call play when an audio finish, cant use replicas
-            Count,  // Only play an certain count of loops, cant use replicas.
+            LoopCount,  // Only play an certain count of loops, cant use replicas.
         }
 
-        private class NoActionMonoBehaviour : MonoBehaviour { }
+        // Editor props
+        [SerializeField] private AudioFile[] audioFiles = new AudioFile[1];
+        [SerializeField] private AudioMixerGroup output;
+        [SerializeField] private bool mute = false;
+        [SerializeField] private LoopModeOptions loopMode = LoopModeOptions.Clone;
+        [SerializeField] private TimeModeOptions timeMode = TimeModeOptions.UnscaledDeltaTime;  // For fades and time related functions
+        [SerializeField] private PlayModeOptions playMode = PlayModeOptions.Random;
+        [SerializeField] private int iterations = 3;
+        [SerializeField] private int replicas = 1;
+        [SerializeField] private bool defaultHostToDDOL = false;
+        [SerializeField] private float timeBetweenPlays = 0;
 
-
-        public AudioFile[] audioFiles = new AudioFile[1];
-        public TimeMode timeMode = TimeMode.UnscaledDeltaTime;  // For fades and time related functions
-        public PlayMode playMode = PlayMode.Random;
-        public LoopMode loopMode;
-        public int iterationsVal;
-        public int replicasVal = 1;
-        public bool defaultHostToDDOL = false;
-        public bool allowOverlap = true;
-        public AudioMixerGroup output;
-
-
-
-        [NonSerialized] private AudioEventsListener listener;
-        [NonSerialized] private bool isStopped = true;
-        [NonSerialized] private GameObject lastHost = null;
-        [NonSerialized] private int currentIterations = 0;
-        private int iterations => iterationsVal.MinInt(1);
-        private int replicas { 
+        // Public getters of private props
+        private AudioFile[] AudioFiles => audioFiles;
+        public AudioMixerGroup Output 
+        {
+            get { return output; }
+            set
+            {
+                output = value;
+                SetToAllAudioSources(a => a.outputAudioMixerGroup = value);
+            }
+        }
+        public bool Mute 
+        { 
+            get { return mute; } 
+            set 
+            {
+                mute = value;
+                SetToAllAudioSources(a => a.mute = value);
+            } 
+        }
+        public LoopModeOptions LoopMode => loopMode;
+        public TimeModeOptions TimeMode
+        {
+            get { return timeMode; }
+            set 
+            { 
+                timeMode = value;
+                timer.TimeModeOptions = value;
+            }
+        }
+        public PlayModeOptions PlayMode => playMode;
+        public int Iterations => iterations.MinInt(1);
+        public int Replicas { 
             get 
             {
                 // If loop return only one source
-                if (loopMode != LoopMode.Clone)
-                    return 1;
-
-                return replicasVal.MinInt(1);
+                if (LoopMode == LoopModeOptions.Loop || LoopMode == LoopModeOptions.LoopCount) return 1;
+                
+                return replicas.MinInt(1);
             } 
         }
-        [NonSerialized] private AudioSource[] audioSourcesInstance = null;
-        private AudioSource[] audioSources { get 
-            {
-                if (audioSourcesInstance == null)
-                    audioSourcesInstance = new AudioSource[replicas];
-
-                return audioSourcesInstance;
-            } }
-        [NonSerialized] private GameObject hostInstance = null;
-        private GameObject _host { get 
-            {
-                if (hostInstance == null)
-                {
-                    hostInstance = new GameObject("AudioHost-" + name);
-
-                    if(defaultHostToDDOL)
-                        UnityEngine.Object.DontDestroyOnLoad(hostInstance);
-
-                }
-                return hostInstance;
-            } }
-        [NonSerialized] private int currentSourceInstance = 0;
-        private int? currentSource { 
-            get 
-            {
-                if (!allowOverlap)
-                {
-                    for (int i = 0; i < audioSources.Length; i++)
-                    {
-                        if (audioSources[i] == null) return i;
-
-                        if (!audioSources[i].isPlaying) return i;
-                    }
-
-                    return null;
-                }
-
-                var current = currentSourceInstance;
-                currentSourceInstance++;
-                if (currentSourceInstance > (replicas - 1)) currentSourceInstance = 0;
-                return current;
-
-            } 
+        public bool DefaultHostToDDOL => defaultHostToDDOL;
+        public float TimeBetweenPlays
+        {
+            get { return timeBetweenPlays; }
+            set { timeBetweenPlays = value; }
         }
+
+        [NonSerialized] private AudioEventsListener listener;
+        [NonSerialized] private TimeEventsListener timer;
+        [NonSerialized] private bool IsStopped = true;
+        [NonSerialized] private GameObject lastHost = null;
         [NonSerialized] private Queue<AudioFile> audioFilesQueue = new Queue<AudioFile>();
-        private AudioFile currentAudioFile { get 
+        [NonSerialized] private int currentSourceCounter_ = 0;
+        [NonSerialized] private bool canPlay = true;
+
+
+        [NonSerialized] private int currentIterations = 0;
+        private int CurrentIteration
+        {
+            get { return currentIterations; }
+            set
             {
-                if (audioFiles == null)
-                {
-                    Debug.LogError(new NullReferenceException("AudioPlaylist: Audio files cant be a null array"));
-                    return null;
-                }
-
-                if (audioFiles.Length < 1)
-                {
-                    Debug.LogError(new NullReferenceException("AudioPlaylist: Audio files array cant be a empty array"));
-                    return null;
-                }
-
-                if (playMode == PlayMode.RandomNotRepeated)
-                {
-                    // If queue is empty, Fill it
-                    if (audioFilesQueue.Count() < 1)
-                    {
-                        audioFilesQueue = audioFiles.Shuffle().ToQueue();
-                    }
-
-                    // Return a point
-                    return audioFilesQueue.Dequeue();
-                }
-                else if (playMode == PlayMode.Sequence)
-                {
-                    // If queue is empty, Fill it
-                    if (audioFilesQueue.Count() < 1)
-                    {
-                        audioFilesQueue = audioFiles.ToQueue();
-                    }
-
-                    // Return a point
-                    return audioFilesQueue.Dequeue();
-                }
-                else if (playMode == PlayMode.InverseSequence)
-                {
-                    // If queue is empty, Fill it
-                    if (audioFilesQueue.Count() < 1)
-                    {
-                        audioFilesQueue = audioFiles.Reverse().ToQueue();
-                    }
-
-                    // Return a point
-                    return audioFilesQueue.Dequeue();
-                }
-                else if (playMode == PlayMode.SequenceRandomStart)
-                {
-                    // If queue is empty, Fill it
-                    if (audioFilesQueue.Count() < 1)
-                    {
-                        audioFilesQueue = audioFiles.ToQueue().Jump(StaticFunctions.RandomInt(0, audioFiles.Length));
-                    }
-
-                    // Return a point
-                    return audioFilesQueue.Dequeue();
-                }
-                else if (playMode == PlayMode.InverseSequenceRandomStart)
-                {
-                    // If queue is empty, Fill it
-                    if (audioFilesQueue.Count() < 1)
-                    {
-                        audioFilesQueue = audioFiles.Reverse().ToQueue().Jump(StaticFunctions.RandomInt(0, audioFiles.Length));
-                    }
-
-                    // Return a point
-                    return audioFilesQueue.Dequeue();
-                }
-                else // if (playMode == PlayMode.Random)
-                {
-                    // Return a point
-                    var position = StaticFunctions.RandomInt(0, audioFiles.Length - 1);
-                    return audioFiles[position];
-                }
-
-            } 
+                currentIterations = value;
+            }
         }
-        [NonSerialized] private MonoBehaviour monoHostInstance = null;
-        private MonoBehaviour _monoHost
+
+        [NonSerialized] private AudioSource[] audioSourcesList_ = null;  // Lenght is assignet in Get function because cant be assigned here
+        private AudioSource[] AudioSourcesList
         {
             get
             {
-                if (monoHostInstance == null)
-                {
-                    monoHostInstance = new GameObject("AudioMonoHost-" + name).AddComponent<NoActionMonoBehaviour>();
+                if (audioSourcesList_ == null)
+                    audioSourcesList_ = new AudioSource[Replicas];
 
-                    UnityEngine.Object.DontDestroyOnLoad(monoHostInstance.gameObject);
-
-                }
-                return monoHostInstance;
+                return audioSourcesList_;
             }
         }
 
 
-        private AudioSource GetSource(GameObject host)
+        [NonSerialized] private GameObject host_ = null;
+        private GameObject Host { get 
         {
+            if (host_ == null)
+            {
+                host_ = new GameObject("AudioHost-" + name);
+
+                if(DefaultHostToDDOL)
+                    DontDestroyOnLoad(host_);
+
+            }
+            return host_;
+        } }
+
+
+        public void SetToAllAudioSources(Action<AudioSource> action)
+        {
+            for (int i = 0; i < AudioSourcesList.Length; i++)
+            {
+                if (AudioSourcesList[i] == null) continue;
+                try
+                {
+                    action(AudioSourcesList[i]);
+                }
+                catch (Exception e)
+                {
+                    Debug.Log(e);
+                }
+            }
+        }
+
+        private int GetNextAudioSourceIndex()
+        {
+            // Check for nulls
+            for (int i = 0; i < AudioSourcesList.Length; i++)
+            {
+                if (AudioSourcesList[i] == null) return i;
+                if (!AudioSourcesList[i].isPlaying) return i;
+            }
+
+
+            var current = currentSourceCounter_;
+            currentSourceCounter_++;
+            if (currentSourceCounter_ > (Replicas - 1)) currentSourceCounter_ = 0;
+            return current;
+        }
+
+        private AudioFile GetNextAudioFile()
+        {
+            if (AudioFiles == null)
+            {
+                Debug.LogError(new NullReferenceException("AudioPlaylist: Audio files cant be a null array"));
+                return null;
+            }
+
+            if (AudioFiles.Length < 1)
+            {
+                Debug.LogError(new NullReferenceException("AudioPlaylist: Audio files array cant be a empty array"));
+                return null;
+            }
+
+            if (PlayMode == PlayModeOptions.RandomNotRepeated)
+            {
+                // If queue is empty, Fill it
+                if (audioFilesQueue.Count() < 1)
+                {
+                    audioFilesQueue = AudioFiles.Shuffle().ToQueue();
+                }
+
+                // Return a point
+                return audioFilesQueue.Dequeue();
+            }
+            else if (PlayMode == PlayModeOptions.Sequence)
+            {
+                // If queue is empty, Fill it
+                if (audioFilesQueue.Count() < 1)
+                {
+                    audioFilesQueue = AudioFiles.ToQueue();
+                }
+
+                // Return a point
+                return audioFilesQueue.Dequeue();
+            }
+            else if (PlayMode == PlayModeOptions.InverseSequence)
+            {
+                // If queue is empty, Fill it
+                if (audioFilesQueue.Count() < 1)
+                {
+                    audioFilesQueue = AudioFiles.Reverse().ToQueue();
+                }
+
+                // Return a point
+                return audioFilesQueue.Dequeue();
+            }
+            else if (PlayMode == PlayModeOptions.SequenceRandomStart)
+            {
+                // If queue is empty, Fill it
+                if (audioFilesQueue.Count() < 1)
+                {
+                    audioFilesQueue = AudioFiles.ToQueue().Jump(StaticFunctions.RandomInt(0, AudioFiles.Length));
+                }
+
+                // Return a point
+                return audioFilesQueue.Dequeue();
+            }
+            else if (PlayMode == PlayModeOptions.InverseSequenceRandomStart)
+            {
+                // If queue is empty, Fill it
+                if (audioFilesQueue.Count() < 1)
+                {
+                    audioFilesQueue = AudioFiles.Reverse().ToQueue().Jump(StaticFunctions.RandomInt(0, AudioFiles.Length));
+                }
+
+                // Return a point
+                return audioFilesQueue.Dequeue();
+            }
+            else // if (playMode == PlayMode.Random)
+            {
+                // Return a point
+                var position = StaticFunctions.RandomInt(0, AudioFiles.Length - 1);
+                return AudioFiles[position];
+            }
+        }
+
+        private AudioSource GetNextAudioSource(GameObject host)
+        {
+            // Precreate host, in case is internal host
+            host.transform.position = host.transform.position;
+
             if (host == null)
-                host = _host;
+            {
+                Debug.LogError(new NullReferenceException("AudioPlaylist: Host is null"));
+                return null;
+            }
+
+            // Check if can return a new AudioSource or not
+            if (!canPlay) return null;
+
 
             // Save the lastHost
             lastHost = host;
 
-            //Debug.Log("Getting source in: " + host.name);
-            var ix = currentSource;
+            //Get the audio souce index
+            var i = GetNextAudioSourceIndex();
+            var file = GetNextAudioFile();
 
-            // If no available source
-            if (ix == null) return null;
-
-            // If available source
-            var i = (int)currentSource;
-
-            var file = currentAudioFile;
             if (file == null)
             {
                 Debug.LogError(new NullReferenceException("AudioPlaylist: Audiofile is null"));
                 return null;
             }
 
-            // If is diferent gameObject destroy the source
-            if (audioSources[i] != null)
+            // If is in a diferent gameObject destroy the source
+            if (AudioSourcesList[i] != null)
             {
                 //Debug.Log("AudioSource is already created");
-                if (audioSources[i].gameObject != host)
+                if (AudioSourcesList[i].gameObject != host)
                 {
                     //Debug.Log("AudioSource is in diferente gameobject: destroying audiosource");
-                    UnityEngine.Object.Destroy(audioSources[i]);
-                    audioSources[i] = null;
+                    UnityEngine.Object.Destroy(AudioSourcesList[i]);
+                    AudioSourcesList[i] = null;
                 }
             }
 
             // If is a new created audiosource
-            if(audioSources[i] == null)
+            if(AudioSourcesList[i] == null)
             {
                 //Debug.Log("AudioSource is null: crating a new one in: " + host);
-                audioSources[i] = host.AddComponent<AudioSource>();
-
-                // Assign one time properties
-                audioSources[i].loop = false; // Always false, is controled from this class
-                audioSources[i].playOnAwake = false;  // Neverplay on awake only when Play() is called
-                audioSources[i].outputAudioMixerGroup = output;
+                AudioSourcesList[i] = host.AddComponent<AudioSource>();
             }
 
-            
-            // Assign multi time properties
-            audioSources[i].clip = file.AudioClip;
-            audioSources[i].priority = file.Priority;
-            audioSources[i].volume = file.Volume;
-            audioSources[i].pitch = file.Pitch;
-            audioSources[i].panStereo = file.Pan;
-            audioSources[i].spatialBlend = file.SpatialBlend;
-            audioSources[i].reverbZoneMix = file.ReverbZone;
+            // Assign fixed props
+            AudioSourcesList[i].bypassEffects = false; // Always false, is controled from this class
+            AudioSourcesList[i].bypassListenerEffects = false; // Always false, is controled from this class
+            AudioSourcesList[i].bypassReverbZones = false; // Always false, is controled from this class
+            AudioSourcesList[i].playOnAwake = false;  // Neverplay on awake only when Play() is called
+            AudioSourcesList[i].loop = false; // Always false, is controled from this class
+
+            // Assign variable properties
+            AudioSourcesList[i].clip = file.AudioClip;
+            AudioSourcesList[i].outputAudioMixerGroup = Output;
+            AudioSourcesList[i].mute = Mute;
+            AudioSourcesList[i].priority = file.Priority;
+            AudioSourcesList[i].volume = file.Volume;
+            AudioSourcesList[i].pitch = file.Pitch;
+            AudioSourcesList[i].panStereo = file.Pan;
+            AudioSourcesList[i].spatialBlend = file.SpatialBlend;
+            AudioSourcesList[i].reverbZoneMix = file.ReverbZone;
             
             // Check for loop
-            CheckForLoop(audioSources[i]);
+            AddLoopCallback(AudioSourcesList[i]);
 
             //Debug.Log("AudioSource returned in: " + audioSources[i].gameObject.name);
 
-            return audioSources[i];
+            return AudioSourcesList[i];
 
         }
 
-        private void CheckForLoop(AudioSource source)
+        private void AddLoopCallback(AudioSource source)
         {
             // If is no playing return
             if (!Application.isPlaying)
                 return;
 
-            if (loopMode == LoopMode.Clone)
+            if (LoopMode == LoopModeOptions.Clone)
                 return;
 
-            //Debug.Log("Is loopmode addiing behaviour");
             if (listener != null)
                 Destroy(listener);
 
@@ -292,421 +344,144 @@ namespace U.Universal.Sound
                 //Debug.Log("IsStopped: " + isStopped);
 
                 // If is stopped and should be playing
-                if (isStopped)
+                if (IsStopped)
                     return;
 
-                // Destroy the event
-                Destroy(el);
-
-                if (loopMode == LoopMode.Loop)
+                if (LoopMode == LoopModeOptions.Loop)
                 {
                     //Debug.Log("loop mode play");
                     if (lastHost != null)
-                        PlayInside(lastHost);
+                        RePlay(lastHost);
 
                 }
 
-                else if (loopMode == LoopMode.Count)
+                else if (LoopMode == LoopModeOptions.LoopCount)
                 {
-                    currentIterations++;
-                    if (currentIterations < iterations)
+                    CurrentIteration++;
+                    Debug.Log("I: " + iterations + " CI: " + CurrentIteration);
+                    if (CurrentIteration < Iterations)
                         if (lastHost != null)
-                            PlayInside(lastHost);
+                            RePlay(lastHost);
                 }
+
+                // Destroy the event
+                Destroy(el);
 
             };
 
         }
 
-        private void PlayInside(GameObject host)
+        private void AddTimeBetweenPlaysTime()
         {
-            GetSource(host)?.Play();
-        }
+            // If is no playing return
+            if (!Application.isPlaying)
+                return;
 
+            if (TimeBetweenPlays <= 0)
+                return;
 
+            // If can Play because is already Playing
+            if (!canPlay) return;
 
-        public void Create(GameObject host)
-        {
-            if (host == null) return;
+            if (timer == null)
+                timer = Host.AddComponent<TimeEventsListener>();
 
-            for (int i = 0; i < replicas; i++)
+            // Cant play next until time ends
+            canPlay = false;
+
+            timer.TimeModeOptions = timeMode;
+            timer.SetAndPlay(TimeBetweenPlays);
+            timer.TimeOver = () => 
             {
-                GetSource(host);
-            }
+                canPlay = true;
+            };
+
         }
 
-        public void Create()
+        private void RePlay(GameObject host)
         {
-            Create(_host);
-        }
-
-
-
-        public void Play(GameObject host, PlayProperties properties)
-        {
-            if (host == null) return;
-
-            var s = GetSource(host);
-
-            if (s == null) return;
-
-            // If overide properties
-            if(properties != null)
-            {
-                s.volume = properties.volume;
-                s.pitch = properties.pitch;
-            }
-
-            currentIterations = 0;
-            isStopped = false;
-            s.Play();
+            //Debug.Log("H: " + host.name);
+            GetNextAudioSource(host)?.Play();
         }
 
         public void Play(GameObject host)
         {
-            Play(host, null);
+            CurrentIteration = 0;
+            IsStopped = false;
+            GetNextAudioSource(host)?.Play();
+            AddTimeBetweenPlaysTime();
         }
 
-        public void Play(PlayProperties properties)
-        {
-            Play(_host, properties);
-        }
-
-        public void Play()
-        {
-            Play(_host);
-        }
+        public void Play() => Play(Host);
 
 
-
-        public void PlayDelayed(float delay, GameObject host, PlayProperties properties)
-        {
-            if (host == null) return;
-
-            var s = GetSource(host);
-
-            if (s == null) return;
-
-            // If overide properties
-            if (properties != null)
-            {
-                s.volume = properties.volume;
-                s.pitch = properties.pitch;
-            }
-
-            currentIterations = 0;
-            isStopped = false;
-            s.PlayDelayed(delay.MinFloat(0f));
-        }
 
         public void PlayDelayed(float delay, GameObject host)
         {
-            PlayDelayed(delay, host, null);
+            CurrentIteration = 0;
+            IsStopped = false;
+            GetNextAudioSource(host)?.PlayDelayed(delay);
+            AddTimeBetweenPlaysTime();
         }
 
-        public void PlayDelayed(float delay, PlayProperties properties)
-        {
-            PlayDelayed(delay, _host, properties);
-        }
-
-        public void PlayDelayed(float delay)
-        {
-            PlayDelayed(delay, _host);
-        }
+        public void PlayDelayed(float delay) => PlayDelayed(delay, Host);
 
 
-
-        public void PlayScheduled(float time, GameObject host, PlayProperties properties)
-        {
-            if (host == null) return;
-
-            var s = GetSource(host);
-
-            if (s == null) return;
-
-            // If overide properties
-            if (properties != null)
-            {
-                s.volume = properties.volume;
-                s.pitch = properties.pitch;
-            }
-
-            currentIterations = 0;
-            isStopped = false;
-            s.PlayScheduled(time.MinFloat(time));
-        }
 
         public void PlayScheduled(float time, GameObject host)
         {
-            PlayScheduled(time, host, null);
+            CurrentIteration = 0;
+            IsStopped = false;
+            GetNextAudioSource(host)?.PlayScheduled(time);
+            AddTimeBetweenPlaysTime();
         }
 
-        public void PlayScheduled(float time, PlayProperties properties)
-        {
-            PlayScheduled(time, _host, properties);
-        }
-
-        public void PlayScheduled(float time)
-        {
-            PlayScheduled(time, _host);
-        }
+        public void PlayScheduled(float time) => PlayScheduled(time, Host);
 
 
 
         public void Pause()
         {
-            isStopped = true;
-            for (int i = 0; i < audioSources.Length; i++)
-            {
-                if (audioSources[i] == null) continue;
-                audioSources[i].Pause();
-            }
+            IsStopped = true;
+            SetToAllAudioSources(a => a.Pause());
         }
 
         public void UnPause()
         {
-            isStopped = false;
-            for (int i = 0; i < audioSources.Length; i++)
-            {
-                if (audioSources[i] == null) continue;
-                audioSources[i].UnPause();
-            }
+            IsStopped = false;
+            SetToAllAudioSources(a => a.UnPause());
         }
 
         public void Stop()
         {
-            isStopped = true;
-            currentIterations = 0;
-            for (int i = 0; i < audioSources.Length; i++)
-            {
-                if (audioSources[i] == null) continue;
-                audioSources[i].Stop();
-
-            }
+            IsStopped = true;
+            CurrentIteration = 0;
+            canPlay = true;
+            SetToAllAudioSources(a => a.Stop());
         }
 
 
-
-        public void Destroy()
+        public void DestroyAllSources()
         {
-            isStopped = true;
-            currentIterations = 0;
+            IsStopped = true;
+            CurrentIteration = 0;
             Destroy(listener);
-            for (int i = 0; i < audioSources.Length; i++)
+            Destroy(timer);
+            for (int i = 0; i < AudioSourcesList.Length; i++)
             {
-                if (audioSources[i] == null) continue;
+                if (AudioSourcesList[i] == null) continue;
 
-                UnityEngine.Object.Destroy(audioSources[i]);
+                Destroy(AudioSourcesList[i]);
 
-                audioSources[i] = null;
+                AudioSourcesList[i] = null;
 
             }
-            if(hostInstance != null)
-                Destroy(hostInstance);
+            if(host_ != null)
+                Destroy(host_);
         }
 
 
-        #region Fade
-
-        public void RestoreVol()
-        {
-            //foreach (var source in audioSources)
-            //{
-            //    if (source == null) continue;
-
-            //    source.
-            //}
-            foreach (var file in audioFiles)
-            {
-                if (file == null) continue;
-
-                file.RestoreVol();
-            }
-        }
-
-        public void RestorePitch()
-        {
-            //foreach (var source in audioSources)
-            //{
-            //    if (source == null) continue;
-
-            //    source.pitch = value.MinMaxFloat(-3f, 3f);
-            //}
-            foreach (var file in audioFiles)
-            {
-                if (file == null) continue;
-
-                file.RestorePitch();
-            }
-        }
-
-        private IEnumerator DoFadeVol(float targetVolume, float duration)
-        {
-            //Debug.Log("Fading volume of: " + name);
-
-            float currentTime = 0;
-            float startVol = volume;
-            targetVolume = targetVolume.MinMaxFloat(0f, 1f);
-            duration = duration.MinFloat(0f);
-
-            //Debug.Log("curr: " + currentTime + " < durat: " + duration);
-            while (currentTime < duration)
-            {
-                if(timeMode == TimeMode.DeltaTime)
-                    currentTime += Time.deltaTime;
-                else
-                    currentTime += Time.unscaledDeltaTime;
-
-                volume = Mathf.Lerp(startVol, targetVolume, currentTime / duration);
-                //Debug.Log("Fading: " + volume);
-                yield return null;
-            }
-            //Debug.Log("End of fade");
-            yield break;
-        }
-
-        public void FadeVolume(float targetVolume, float duration)
-        {
-            
-            _monoHost.StartCoroutine(DoFadeVol(targetVolume, duration));
-
-        }
-
-        public void FadeOutVolume(float duration)
-        {
-            IEnumerator FadeOut(float duration)
-            {
-                yield return DoFadeVol(0, duration);
-                Stop();
-            }
-
-            _monoHost.StartCoroutine(FadeOut(duration));
-        }
-
-
-
-        private IEnumerator DoFadePitch(float targetPitch, float duration)
-        {
-            //Debug.Log("Fading pitch of: " + name);
-
-            float currentTime = 0;
-            float startPitch = pitch;
-            targetPitch = targetPitch.MinMaxFloat(-3f, 3f);
-            duration = duration.MinFloat(0f);
-
-            //Debug.Log("curr: " + currentTime + " < durat: " + duration);
-            while (currentTime < duration)
-            {
-                if (timeMode == TimeMode.DeltaTime)
-                    currentTime += Time.deltaTime;
-                else
-                    currentTime += Time.unscaledDeltaTime;
-
-                pitch = Mathf.Lerp(startPitch, targetPitch, currentTime / duration);
-                //Debug.Log("Fading: " + pitch);
-                yield return null;
-            }
-            //Debug.Log("End of fade");
-            yield break;
-        }
-
-        public void FadePitch(float targetPitch, float duration)
-        {
-
-            _monoHost.StartCoroutine(DoFadePitch(targetPitch, duration));
-
-        }
-
-        #endregion
-
-
-        #region Other publics
-
-        public bool isplaying { 
-            get 
-            {
-                var playing = false;
-
-                foreach(var source in audioSources)
-                {
-                    if (source == null) continue;
-
-                    playing = playing || source.isPlaying;
-                }
-
-                return playing;
-            } 
-        }
-
-        public float volume  // Get the average volume of al soources, or set the volume to all sources
-        {
-            get
-            {
-                var totalVolume = 0f;
-                var totalCounts = 0;
-
-                foreach (var source in audioSources)
-                {
-                    if (source == null) continue;
-
-                    totalCounts++;
-                    totalVolume += source.volume;
-                }
-
-                return totalVolume / totalCounts;
-            }
-            set
-            {
-                foreach (var source in audioSources)
-                {
-                    if (source == null) continue;
-
-                    source.volume = value.MinMaxFloat(0f, 1f);
-                }
-                foreach (var file in audioFiles)
-                {
-                    if (file == null) continue;
-
-                    file.Volume = value.MinMaxFloat(00f, 1f);
-                }
-            }
-        }
-
-        public float pitch  // Get the average pitch of al soources, or set the pitch to all sources
-        {
-            get
-            {
-                var totalPitch = 0f;
-                var totalCounts = 0;
-
-                foreach (var source in audioSources)
-                {
-                    if (source == null) continue;
-
-                    totalCounts++;
-                    totalPitch += source.pitch;
-                }
-
-                return totalPitch / totalCounts;
-            }
-            set
-            {
-                foreach (var source in audioSources)
-                {
-                    if (source == null) continue;
-
-                    source.pitch = value.MinMaxFloat(-3f, 3f);
-                }
-                foreach (var file in audioFiles)
-                {
-                    if (file == null) continue;
-
-                    file.Pitch = value.MinMaxFloat(00f, 1f);
-                }
-            }
-        }
-
-        #endregion
+        private class NoActionMonoBehaviour : MonoBehaviour { }
 
     }
 

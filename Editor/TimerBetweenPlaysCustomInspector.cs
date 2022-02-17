@@ -3,13 +3,13 @@ using UnityEditor;
 
 namespace U.Universal.Sound
 {
-    [CustomEditor(typeof(AudioEventsListener))]
+    [CustomEditor(typeof(TimeEventsListener))]
     [CanEditMultipleObjects()]
-    public class AudioEventsListenerCustomInspector : UnityEditor.Editor
+    public class TimerBetweenPlaysCustomInspector : UnityEditor.Editor
     {
         public override void OnInspectorGUI()
         {
-            AudioEventsListener c = (AudioEventsListener)target;
+            TimeEventsListener c = (TimeEventsListener)target;
 
             if (!Application.isPlaying) 
             { 

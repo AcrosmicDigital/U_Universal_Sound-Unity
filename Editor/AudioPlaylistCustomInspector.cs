@@ -19,13 +19,6 @@ namespace U.Universal.Sound.Editor
 
             #region AudioFiles
 
-            if (GUILayout.Button("Set default"))
-            {
-                foreach (var file in c.audioFiles)
-                {
-                    file.SetDefaultValues();
-                }
-            }
             GUILayout.Label("If random are false, max value will be used");
             GUILayout.Label("Deselect and select Playlist to apply changes");
 
@@ -38,16 +31,20 @@ namespace U.Universal.Sound.Editor
 
             GUILayout.Space(8);
             EditorGUILayout.PropertyField(serializedObject.FindProperty("timeMode"), true);
-            EditorGUILayout.PropertyField(serializedObject.FindProperty("defaultHostToDDOL"), new GUIContent("Permanent"), true);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("timeBetweenPlays"), true);
+            GUILayout.Space(8);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("defaultHostToDDOL"), new GUIContent("Default Host To DDOL"), true);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("mute"), true);
+            GUILayout.Space(8);
             EditorGUILayout.PropertyField(serializedObject.FindProperty("playMode"), true);
 
             EditorGUILayout.PropertyField(serializedObject.FindProperty("loopMode"), true);
             // If replicas or loop
             EditorGUI.indentLevel++;
-            if (c.loopMode == AudioPlaylist.LoopMode.Count)
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("iterationsVal"), new GUIContent("Iterations"), true);
-            else if (c.loopMode == AudioPlaylist.LoopMode.Clone)
-                EditorGUILayout.PropertyField(serializedObject.FindProperty("replicasVal"), new GUIContent("Replicas"), true);
+            if (c.LoopMode == AudioPlaylist.LoopModeOptions.LoopCount)
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("iterations"), new GUIContent("Iterations"), true);
+            else if (c.LoopMode == AudioPlaylist.LoopModeOptions.Clone)
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("replicas"), new GUIContent("Replicas"), true);
             EditorGUI.indentLevel--;
 
             GUILayout.Space(8);

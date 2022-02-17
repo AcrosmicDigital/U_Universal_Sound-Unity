@@ -7,7 +7,7 @@ namespace U.Universal.Sound
     public class AudioPlaylistPlayer : MonoBehaviour
     {
 
-        public enum PlayOnAwkeMode
+        public enum PlayOnAwkeModeOptions
         {
             Disabled,
             Play,
@@ -15,166 +15,97 @@ namespace U.Universal.Sound
             PlayScheduled,
         }
 
+        [SerializeField] private bool useDefaultHost;  // If Playlist defaultHost will be used
+        [SerializeField] private GameObject host;
+        [SerializeField] private AudioPlaylist playlist;
+        [SerializeField] private PlayOnAwkeModeOptions playOnAwakeMode = PlayOnAwkeModeOptions.Disabled;
+        [SerializeField] private float time = 0; // Prioridad
+        [SerializeField] private float delay = 0;
 
-        public bool useDefaultHost = true;
-        public GameObject host;
-        public AudioPlaylist playlist;
-        public PlayOnAwkeMode playOnAwake = PlayOnAwkeMode.Disabled;
-        public float time = 0; // Prioridad
-        public float delay = 0;
+        public bool UseDefaultHost => useDefaultHost;
+        public PlayOnAwkeModeOptions PlayOnAwakeMode => playOnAwakeMode;
 
         private void Awake()
         {
             // Try to read the host
-            if (!useDefaultHost && host == null)
-                host = gameObject;
+            host = gameObject;
 
-            if(playOnAwake == PlayOnAwkeMode.Disabled)
+            if (playOnAwakeMode == PlayOnAwkeModeOptions.Disabled)
             {
                 return;
             }
-            else if (playOnAwake == PlayOnAwkeMode.Play)
+            else if (playOnAwakeMode == PlayOnAwkeModeOptions.Play)
             {
                 Play();
             }
-            else if(playOnAwake == PlayOnAwkeMode.PlayDelayed)
+            else if(playOnAwakeMode == PlayOnAwkeModeOptions.PlayDelayed)
             {
                 PlayDelayed(delay);
             }
-            else if (playOnAwake == PlayOnAwkeMode.PlayScheduled)
+            else if (playOnAwakeMode == PlayOnAwkeModeOptions.PlayScheduled)
             {
                 PlayScheduled(time);
             }
         }
 
-
-        public void Create()
+        private void CheckForNullPlaylist()
         {
-
             if (playlist == null)
             {
                 Debug.LogError(new System.NullReferenceException("AudioPlaylistPlayer: playlist in GameObject: " + gameObject.name + "is not defined"));
-                return;
             }
-
-            if (useDefaultHost) playlist.Create();
-            playlist.Create(host);
         }
 
         public void Play()
         {
-            if (playlist == null)
-            {
-                Debug.LogError(new System.NullReferenceException("AudioPlaylistPlayer: playlist in GameObject: " + gameObject.name + "is not defined"));
-                return;
-            }
+            CheckForNullPlaylist();
 
-            if (useDefaultHost) playlist.Play();
-            playlist.Play(host);
-        }
-
-        public void Play(PlayProperties properties)
-        {
-            if (playlist == null)
-            {
-                Debug.LogError(new System.NullReferenceException("AudioPlaylistPlayer: playlist in GameObject: " + gameObject.name + "is not defined"));
-                return;
-            }
-
-            if (useDefaultHost) playlist.Play(properties);
-            playlist.Play(host, properties);
+            if (useDefaultHost) playlist?.Play();
+            else playlist?.Play(host);
         }
 
         public void PlayDelayed(float delay)
         {
-            if (playlist == null)
-            {
-                Debug.LogError(new System.NullReferenceException("AudioPlaylistPlayer: playlist in GameObject: " + gameObject.name + "is not defined"));
-                return;
-            }
+            CheckForNullPlaylist();
 
-            if (useDefaultHost) playlist.PlayDelayed(delay);
-            playlist.PlayDelayed(delay, host);
-        }
-
-        public void PlayDelayed(float delay, PlayProperties properties)
-        {
-            if (playlist == null)
-            {
-                Debug.LogError(new System.NullReferenceException("AudioPlaylistPlayer: playlist in GameObject: " + gameObject.name + "is not defined"));
-                return;
-            }
-
-            if (useDefaultHost) playlist.PlayDelayed(delay, properties);
-            playlist.PlayDelayed(delay, host, properties);
+            if (useDefaultHost) playlist?.PlayDelayed(delay);
+            else playlist?.PlayDelayed(delay, host);
         }
 
         public void PlayScheduled(float time)
         {
-            if(playlist == null)
-            {
-                Debug.LogError(new System.NullReferenceException("AudioPlaylistPlayer: playlist in GameObject: " + gameObject.name + "is not defined"));
-                return;
-            }
+            CheckForNullPlaylist();
 
-            if (useDefaultHost) playlist.PlayScheduled(time);
-            playlist.PlayScheduled(time, host);
-        }
-
-        public void PlayScheduled(float time, PlayProperties properties)
-        {
-            if (playlist == null)
-            {
-                Debug.LogError(new System.NullReferenceException("AudioPlaylistPlayer: playlist in GameObject: " + gameObject.name + "is not defined"));
-                return;
-            }
-
-            if (useDefaultHost) playlist.PlayScheduled(time, properties);
-            playlist.PlayScheduled(time, host, properties);
+            if (useDefaultHost) playlist?.PlayScheduled(time);
+            else playlist?.PlayScheduled(time, host);
         }
 
         public void Pause()
         {
-            if (playlist == null)
-            {
-                Debug.LogError(new System.NullReferenceException("AudioPlaylistPlayer: playlist in GameObject: " + gameObject.name + "is not defined"));
-                return;
-            }
+            CheckForNullPlaylist();
 
-            playlist.Pause();
+            playlist?.Pause();
         }
 
         public void UnPause()
         {
-            if (playlist == null)
-            {
-                Debug.LogError(new System.NullReferenceException("AudioPlaylistPlayer: playlist in GameObject: " + gameObject.name + "is not defined"));
-                return;
-            }
+            CheckForNullPlaylist();
 
-            playlist.UnPause();
+            playlist?.UnPause();
         }
 
         public void Stop()
         {
-            if (playlist == null)
-            {
-                Debug.LogError(new System.NullReferenceException("AudioPlaylistPlayer: playlist in GameObject: " + gameObject.name + "is not defined"));
-                return;
-            }
+            CheckForNullPlaylist();
 
-            playlist.Stop();
+            playlist?.Stop();
         }
 
         public void Destroy()
         {
-            if (playlist == null)
-            {
-                Debug.LogError(new System.NullReferenceException("AudioPlaylistPlayer: playlist in GameObject: " + gameObject.name + "is not defined"));
-                return;
-            }
+            CheckForNullPlaylist();
 
-            playlist.Destroy();
+            playlist?.DestroyAllSources();
         }
 
     }
