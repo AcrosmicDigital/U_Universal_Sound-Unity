@@ -94,6 +94,55 @@ namespace U.Universal.Sound
             get { return timeBetweenPlays; }
             set { timeBetweenPlays = value; }
         }
+        public float AverageVolume
+        {
+            get
+            {
+                var totalVol = 0f;
+                var totalFiles = 0;
+
+                SetToAllAudioSources(a => 
+                {
+                    totalVol += a.volume;
+                    totalFiles++;
+                });
+
+                return totalVol / totalFiles;
+            }
+        }
+        public float AveragePitch
+        {
+            get
+            {
+                var totalPitch = 0f;
+                var totalFiles = 0;
+
+                SetToAllAudioSources(a =>
+                {
+                    totalPitch += a.pitch;
+                    totalFiles++;
+                });
+
+                return totalPitch / totalFiles;
+            }
+        }
+        public float AveragePan
+        {
+            get
+            {
+                var totalPan = 0f;
+                var totalFiles = 0;
+
+                SetToAllAudioSources(a =>
+                {
+                    totalPan += a.panStereo;
+                    totalFiles++;
+                });
+
+                return totalPan / totalFiles;
+            }
+        }
+
 
         [NonSerialized] private AudioEventsListener listener;
         [NonSerialized] private TimeEventsListener timer;
@@ -140,6 +189,20 @@ namespace U.Universal.Sound
             }
             return host_;
         } }
+
+
+        [NonSerialized] private MonoBehaviour behaviour_ = null;
+        private MonoBehaviour Behaviour
+        {
+            get
+            {
+                if (behaviour_ == null)
+                {
+                    behaviour_ = Host.AddComponent<NoActionMonoBehaviour>();
+                }
+                return behaviour_;
+            }
+        }
 
 
         public void SetToAllAudioSources(Action<AudioSource> action)
@@ -481,8 +544,144 @@ namespace U.Universal.Sound
         }
 
 
+
+
+
+        #region Fade
+
+        private IEnumerator DoFadeVolume(float startVolume, float targetVolume, float duration, Action OnComplete)
+        {
+            //Debug.Log("Fading volume of: " + name);
+
+            float currentTime = 0;
+            //float startVol = volume;
+            targetVolume = targetVolume.MinMaxFloat(0f, 1f);
+            duration = duration.MinFloat(0f);
+
+            //Debug.Log("curr: " + currentTime + " < durat: " + duration);
+            while (currentTime < duration)
+            {
+                if (TimeMode == TimeModeOptions.DeltaTime)
+                    currentTime += Time.deltaTime;
+                else
+                    currentTime += Time.unscaledDeltaTime;
+
+                SetToAllAudioSources(a => a.volume = Mathf.Lerp(startVolume, targetVolume, currentTime / duration).MinMaxFloat(0,1));
+                //Debug.Log("Fading: " + volume);
+                yield return null;
+            }
+            //Debug.Log("End of fade");
+            OnComplete();
+            yield break;
+        }
+
+        public void FadeVolume(float startVolume, float targetVolume, float duration)
+        {
+            Behaviour.StartCoroutine(DoFadeVolume(startVolume, targetVolume, duration, () => { }));
+        }
+
+        public void FadeVolumeAndStop(float startVolume, float targetVolume, float duration)
+        {
+            Behaviour.StartCoroutine(DoFadeVolume(startVolume, targetVolume, duration, () => { Stop(); }));
+        }
+
+        public void FadeVolumeAndDestroyAllSources(float startVolume, float targetVolume, float duration)
+        {
+            Behaviour.StartCoroutine(DoFadeVolume(startVolume, targetVolume, duration, () => { DestroyAllSources(); }));
+        }
+
+
+
+        private IEnumerator DoFadePitch(float startPitch, float targetPitch, float duration, Action OnComplete)
+        {
+            //Debug.Log("Fading pitch of: " + name);
+
+            float currentTime = 0;
+            //float startVol = pitch;
+            targetPitch = targetPitch.MinMaxFloat(0f, 1f);
+            duration = duration.MinFloat(0f);
+
+            //Debug.Log("curr: " + currentTime + " < durat: " + duration);
+            while (currentTime < duration)
+            {
+                if (TimeMode == TimeModeOptions.DeltaTime)
+                    currentTime += Time.deltaTime;
+                else
+                    currentTime += Time.unscaledDeltaTime;
+
+                SetToAllAudioSources(a => a.pitch = Mathf.Lerp(startPitch, targetPitch, currentTime / duration).MinMaxFloat(-3,3));
+                //Debug.Log("Fading: " + pitch);
+                yield return null;
+            }
+            //Debug.Log("End of fade");
+            OnComplete();
+            yield break;
+        }
+
+        public void FadePitch(float startPitch, float targetPitch, float duration)
+        {
+            Behaviour.StartCoroutine(DoFadePitch(startPitch, targetPitch, duration, () => { }));
+        }
+
+        public void FadePitchAndStop(float startPitch, float targetPitch, float duration)
+        {
+            Behaviour.StartCoroutine(DoFadePitch(startPitch, targetPitch, duration, () => { Stop(); }));
+        }
+
+        public void FadePitchAndDestroyAllSources(float startPitch, float targetPitch, float duration)
+        {
+            Behaviour.StartCoroutine(DoFadePitch(startPitch, targetPitch, duration, () => { DestroyAllSources(); }));
+        }
+
+
+
+
+
+        private IEnumerator DoFadePan(float startPan, float targetPan, float duration, Action OnComplete)
+        {
+            //Debug.Log("Fading pan of: " + name);
+
+            float currentTime = 0;
+            //float startVol = pan;
+            targetPan = targetPan.MinMaxFloat(0f, 1f);
+            duration = duration.MinFloat(0f);
+
+            //Debug.Log("curr: " + currentTime + " < durat: " + duration);
+            while (currentTime < duration)
+            {
+                if (TimeMode == TimeModeOptions.DeltaTime)
+                    currentTime += Time.deltaTime;
+                else
+                    currentTime += Time.unscaledDeltaTime;
+
+                SetToAllAudioSources(a => a.panStereo = Mathf.Lerp(startPan, targetPan, currentTime / duration).MinMaxFloat(-3, 3));
+                //Debug.Log("Fading: " + pan);
+                yield return null;
+            }
+            //Debug.Log("End of fade");
+            OnComplete();
+            yield break;
+        }
+
+        public void FadePan(float startPan, float targetPan, float duration)
+        {
+            Behaviour.StartCoroutine(DoFadePan(startPan, targetPan, duration, () => { }));
+        }
+
+        public void FadePanAndStop(float startPan, float targetPan, float duration)
+        {
+            Behaviour.StartCoroutine(DoFadePan(startPan, targetPan, duration, () => { Stop(); }));
+        }
+
+        public void FadePanAndDestroyAllSources(float startPan, float targetPan, float duration)
+        {
+            Behaviour.StartCoroutine(DoFadePan(startPan, targetPan, duration, () => { DestroyAllSources(); }));
+        }
+
+        #endregion Fade
+
+
         private class NoActionMonoBehaviour : MonoBehaviour { }
 
     }
-
 }
