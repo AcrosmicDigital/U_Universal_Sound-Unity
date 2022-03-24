@@ -559,14 +559,15 @@ namespace U.Universal.Sound
             duration = duration.MinFloat(0f);
 
             //Debug.Log("curr: " + currentTime + " < durat: " + duration);
-            while (currentTime < duration)
+            while (currentTime <= duration)
             {
                 if (TimeMode == TimeModeOptions.DeltaTime)
                     currentTime += Time.deltaTime;
                 else
                     currentTime += Time.unscaledDeltaTime;
 
-                SetToAllAudioSources(a => a.volume = Mathf.Lerp(startVolume, targetVolume, currentTime / duration).MinMaxFloat(0,1));
+                if (duration == 0) SetToAllAudioSources(a => a.volume = targetVolume);
+                else SetToAllAudioSources(a => a.volume = Mathf.Lerp(startVolume, targetVolume, currentTime / duration).MinMaxFloat(0f,1f));
                 //Debug.Log("Fading: " + volume);
                 yield return null;
             }
@@ -595,21 +596,23 @@ namespace U.Universal.Sound
         private IEnumerator DoFadePitch(float startPitch, float targetPitch, float duration, Action OnComplete)
         {
             //Debug.Log("Fading pitch of: " + name);
+            //Debug.Log("Fading pitch of: " + startPitch + " " + targetPitch);
 
             float currentTime = 0;
             //float startVol = pitch;
-            targetPitch = targetPitch.MinMaxFloat(0f, 1f);
+            targetPitch = targetPitch.MinMaxFloat(-3f, 3f);
             duration = duration.MinFloat(0f);
 
             //Debug.Log("curr: " + currentTime + " < durat: " + duration);
-            while (currentTime < duration)
+            while (currentTime <= duration)
             {
                 if (TimeMode == TimeModeOptions.DeltaTime)
                     currentTime += Time.deltaTime;
                 else
                     currentTime += Time.unscaledDeltaTime;
 
-                SetToAllAudioSources(a => a.pitch = Mathf.Lerp(startPitch, targetPitch, currentTime / duration).MinMaxFloat(-3,3));
+                if(duration == 0) SetToAllAudioSources(a => a.pitch = targetPitch);
+                else SetToAllAudioSources(a => a.pitch = Mathf.Lerp(startPitch, targetPitch, currentTime / duration).MinMaxFloat(-3f,3f));
                 //Debug.Log("Fading: " + pitch);
                 yield return null;
             }
@@ -647,14 +650,15 @@ namespace U.Universal.Sound
             duration = duration.MinFloat(0f);
 
             //Debug.Log("curr: " + currentTime + " < durat: " + duration);
-            while (currentTime < duration)
+            while (currentTime <= duration)
             {
                 if (TimeMode == TimeModeOptions.DeltaTime)
                     currentTime += Time.deltaTime;
                 else
                     currentTime += Time.unscaledDeltaTime;
 
-                SetToAllAudioSources(a => a.panStereo = Mathf.Lerp(startPan, targetPan, currentTime / duration).MinMaxFloat(-3, 3));
+                if (duration == 0) SetToAllAudioSources(a => a.panStereo = targetPan);
+                else SetToAllAudioSources(a => a.panStereo = Mathf.Lerp(startPan, targetPan, currentTime / duration).MinMaxFloat(0f, 1f));
                 //Debug.Log("Fading: " + pan);
                 yield return null;
             }
