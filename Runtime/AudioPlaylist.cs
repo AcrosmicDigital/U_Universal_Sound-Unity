@@ -380,7 +380,7 @@ namespace U.Universal.Sound
             AudioSourcesList[i].reverbZoneMix = file.ReverbZone;
             
             // Check for loop
-            AddLoopCallback(AudioSourcesList[i]);
+            AddLoopCallback(AudioSourcesList[i], file);
 
             //Debug.Log("AudioSource returned in: " + audioSources[i].gameObject.name);
 
@@ -388,7 +388,7 @@ namespace U.Universal.Sound
 
         }
 
-        private void AddLoopCallback(AudioSource source)
+        private void AddLoopCallback(AudioSource source, AudioFile file)
         {
             // If is no playing return
             if (!Application.isPlaying)
@@ -402,13 +402,27 @@ namespace U.Universal.Sound
 
             listener = source.gameObject.AddComponent<AudioEventsListener>();
             listener.source = source;
-            listener.IfIsStopped = (el) =>
+            listener.replays = file.Replays;
+            listener.IfIsStopped = (el, replays) =>
             {
-                //Debug.Log("IsStopped: " + isStopped);
 
                 // If is stopped and should be playing
                 if (IsStopped)
                     return;
+
+                // If replay enabled
+                //Debug.Log($"Replay: {el.replays}");
+                if (el.replays > 0)
+                {
+                    // Replay same file
+                    el.Replayed();
+
+                    // Return
+                    return;
+                }
+
+                //Debug.Log($"No more replays");
+
 
                 if (LoopMode == LoopModeOptions.Loop)
                 {
@@ -421,7 +435,7 @@ namespace U.Universal.Sound
                 else if (LoopMode == LoopModeOptions.LoopCount)
                 {
                     CurrentIteration++;
-                    Debug.Log("I: " + iterations + " CI: " + CurrentIteration);
+                    //Debug.Log("I: " + iterations + " CI: " + CurrentIteration);
                     if (CurrentIteration < Iterations)
                         if (lastHost != null)
                             RePlay(lastHost);

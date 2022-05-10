@@ -12,7 +12,8 @@ namespace U.Universal.Sound
     {
 
         [NonSerialized] public AudioSource source;
-        [NonSerialized] public Action<AudioEventsListener> IfIsStopped;
+        [NonSerialized] public int replays;
+        [NonSerialized] public Action<AudioEventsListener, int> IfIsStopped;
 
 
         private void Update()
@@ -27,7 +28,7 @@ namespace U.Universal.Sound
 
                 try
                 {
-                    IfIsStopped.Invoke(this);
+                    IfIsStopped.Invoke(this, replays);
                 }
                 catch (Exception) { }
 
@@ -38,5 +39,12 @@ namespace U.Universal.Sound
             }
 
         }
+
+        public void Replayed()
+        {
+            source.Play();
+            replays = (replays - 1).MinInt(0);
+        }
+
     }
 }

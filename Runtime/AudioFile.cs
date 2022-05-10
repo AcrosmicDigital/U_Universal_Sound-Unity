@@ -13,6 +13,7 @@ namespace U.Universal.Sound
     {
 
         [SerializeField] private AudioClip audioClip;
+        [SerializeField] private int replays = 0; // if this clip must repeat when finish 0 = no repeat
         [Range(0f, 256)] [SerializeField] private int priority = 128; // no added
         [Space(8)]
         [SerializeField] private bool rndVol = false;
@@ -34,6 +35,8 @@ namespace U.Universal.Sound
         public AudioClip AudioClip => audioClip;
 
         public int Priority => priority.MinMaxInt(0, 256);
+
+        public int Replays => replays.MinInt(0);
 
         public float Volume { 
             get 
