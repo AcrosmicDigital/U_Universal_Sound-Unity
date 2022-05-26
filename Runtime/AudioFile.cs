@@ -25,8 +25,8 @@ namespace U.Universal.Sound
         [Range(-3f, 3f)] [SerializeField] private float pitchMax = 1f;
         [Space(8)]
         [SerializeField] public bool rndPan = false;// no added
-        [Range(-1f, 1f)] [SerializeField] private float panMin = 1f;
-        [Range(-1f, 1f)] [SerializeField] private float panMax = 1f;
+        [Range(-1f, 1f)] [SerializeField] private float panMin = 0f;
+        [Range(-1f, 1f)] [SerializeField] private float panMax = 0f;
         [Space(8)]
         [Range(0f, 1f)] [SerializeField] private float spatialBlend = 0; // no added
         [Range(0f, 1.1f)] [SerializeField] private float reverbZoneMix = 1; // no added
